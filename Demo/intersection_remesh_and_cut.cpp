@@ -393,7 +393,7 @@ static inline  Node** my_get_split_boundaries_areas(Node* boundaries,Mesh*nm ,In
 
 //给一个cell,返回切割后的多边形区域
 
-static inline Node* my_get_split_areas_from_one_cell(template_c*c ,Mesh* m, Mesh2_Crossover_Point* mcp,Mesh* nm)
+Node* my_get_split_areas_from_one_cell(template_c*c ,Mesh* m, Mesh2_Crossover_Point* mcp,Mesh* nm)
 { 
     Int_RB_Tree* tree1=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
     int_rb_tree_init(tree1);
@@ -436,28 +436,39 @@ static inline Node* my_get_split_areas_from_one_cell(template_c*c ,Mesh* m, Mesh
         mv->v2=(template_v*)(nit->value);
         tree2->insert(tree2,mv->v2->id,mv); 
     } 
+    if(tree2->size>0)
+    {
+        printf("c id: %d  ",c->id);
+    }
+    Node* re=NULL,*re1=NULL;
     Node* boundaries=my_get_cell_boundary_vertices(c,m,mcp,tree1,tree2);
-
-    my_get_split_boundaries_areas();
-
-    // Int_RB_Tree* tree3=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
-    // int_rb_tree_init(tree3);
-    // for(auto it= tree2->begin(tree2);it.it!=NULL;it++)
+    
+    
+    // Node* boundaries=my_get_cell_boundary_vertices(c,m,mcp,tree1,tree2);
+    // re1=node_overlying(re1,boundaries);
+    // while(re1!=NULL)
     // {
-    //     template_v* v=nm->get_vertexp(nm,it.first);
-    //     for(Node* nit=v->faces;nit!=NULL;nit=(Node*)(nit->Next))
+    //     Node* temp_n=NULL;
+    //     for(Node* nit=re1;nit!=NULL;nit=(Node*)(nit->Next))
     //     {
-    //         template_f* f=(template_f*)(nit->value);
-    //         if( tree2->find(tree2,f->vertices[0]->id)!=NULL&&tree2->find(tree2,f->vertices[1]->id)!=NULL)
+    //         Node**two_n= my_get_split_boundaries_areas((Node*)(nit->value),nm,tree2);
+    //         if(two_n==NULL)
     //         {
-    //             tree3->insert(tree3,f->id,f);
+    //             re=node_overlying(re,nit->value);
+    //         }
+    //         else
+    //         {
+    //             temp_n=node_overlying(temp_n,two_n[0]);
+    //             temp_n=node_overlying(temp_n,two_n[1]);
+    //             free(two_n);
+    //             free_node((Node*)(nit->value));
     //         }
     //     }
-    // }
-
+    //     free_node(re1);
+    //     re1=temp_n;
+    // } 
     int_rb_tree_free(tree1);int_rb_tree_free(tree2);
-    //int_rb_tree_free(tree3);
-    return NULL;
+    return re;
 } 
 
 

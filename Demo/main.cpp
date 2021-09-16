@@ -228,7 +228,6 @@ void test_intersection_of_two_polygons()
         free(p2[i]);
     }
     free(p1);free(p2);
-
 }
 
 void test_intersection_of_two_surfaces()
@@ -261,6 +260,22 @@ void test_intersection_of_two_surfaces()
     adjust_mesh_topology(&m3);
     printf("m3 numv:%d\n",m3.num_v(&m3)); 
 
+    //测试重新mesh后的区域
+    printf("测试;%d\n",mcp1->c2p->size);
+    for(auto it=m2.c_begin(&m2);it!=m2.c_end(&m2);it++)
+    {
+        //printf("c id:%d\n",quote(it)->id); 
+        my_get_split_areas_from_one_cell(quote(it),&m2,mcp2,&m3);
+    }
+    // for(auto it=mcp2->c2p->begin(mcp2->c2p);it.it!=NULL;it++)
+    // {
+    //     template_c* c=m2.get_cellp(&m2,it.first);
+    //     printf("c id:%d    ",c->id);
+    //     my_get_split_areas_from_one_cell(c,&m2,mcp2,&m3);
+    // }
+
+
+    //
     // 可视化
     Viewer_World_Manager vwm;
     viewer_world_manager_init(&vwm);

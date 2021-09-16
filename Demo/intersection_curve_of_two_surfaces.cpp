@@ -149,6 +149,7 @@ static void vertex_attachment_to_celln(template_c*c,template_v* nv,Mesh2_Crossov
     Node* value=(Node*)(mcp->c2p->find(mcp->c2p,c->id));
     value=node_overlying(value, nv);
     mcp->c2p->insert(mcp->c2p,c->id, value);
+     
     scp->c=c; 
 }
 //
