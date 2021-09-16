@@ -198,7 +198,7 @@ static inline  Node*  my_get_cell_boundary_vertices(template_c* c,Mesh* m,Mesh2_
             for(Node* nit1=re;nit1!=NULL;nit1=(Node*)(nit1->Prev))
             {
                 My_Vertex* mv1=(My_Vertex*)(nit1->value);
-                if(mv1->dis<mv->dis)
+                if(mv1->dis<=mv->dis)
                 {
                     if(re==nit1)
                     {
@@ -249,8 +249,8 @@ static inline Node* my_get_split_one_split_edge(Node* boundaries,Int_RB_Tree*tre
                     Int_RB_Tree* tree=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
                     int_rb_tree_init(tree);
                     tree->insert(tree,f->id,f);
-                    edge=node_overlying(edge,mv);
-                    edge=node_overlying(edge,mv1);
+                    edge=node_pushback(edge,mv);
+                    edge=node_pushback(edge,mv1);
                     while(mv1!=NULL&&node_find(boundaries,mv1)==NULL)
                     {
                         mv=mv1; mv1=NULL;            
@@ -266,17 +266,16 @@ static inline Node* my_get_split_one_split_edge(Node* boundaries,Int_RB_Tree*tre
                                 tree->insert(tree,f->id,f);
                                 f->vertices[0]==mv->v2?v=f->vertices[1]:v=f->vertices[0]; 
                                 mv1=(My_Vertex*)(tree2->find(tree2,v->id));
-                                edge=node_overlying(edge,mv1);
+                                edge=node_pushback(edge,mv1);
                                 break; 
                             }
                         }
                     }
                     if(mv1==NULL)
                     {
-                        free_node(edge);
+                        free_node(node_reverse(edge));
                         edge=NULL;
                     } 
-
                     int_rb_tree_free(tree);
                 } 
                 if(edge!=NULL)
@@ -291,8 +290,7 @@ static inline Node* my_get_split_one_split_edge(Node* boundaries,Int_RB_Tree*tre
         }
         i++;
     }
-
-    return edge;
+    return node_reverse(edge);
 }
 static int my_get_node_value_index(Node* node,void* value)
 {
@@ -314,39 +312,33 @@ static int my_get_node_value_index(Node* node,void* value)
 //给定边界围成的区域和切割线，返回切割后的两个区域
 static Node** my_get_split_boundaries_area_from_boundaries_and_edge(Node* boundaries,Node* edge)
 {
+    if(edge==NULL)
+    {return NULL;}
     Node* e_reverse=node_reverse(edge);
     int index_1=my_get_node_value_index(boundaries,edge->value);
-    int index_2=my_get_node_value_index(boundaries,e_reverse->value);
-    int size=node_size(boundaries);
-    Node** re=(Node**)malloc(sizeof(Node*)*2);
-    memset(re,0,sizeof(Node*)*2);
+    int index_2=my_get_node_value_index(boundaries,e_reverse->value);    
     int index1=index_1,index2=index_2;
-    int flag=0;
+    Node*edge1=node_copy(edge);
     if(index_1>index_2)
     {
-        flag=1;
+        Node* temp_n=node_reversen(edge1);
+        free_node(edge1);
+        edge1=temp_n; 
         index1=index_2;
         index2=index_1;
     }
-//
+    int size=node_size(boundaries);
+    Node** re=(Node**)malloc(sizeof(Node*)*2);
+    memset(re,0,sizeof(Node*)*2);
     for(int i=0;i<index1;i++)
     {
         re[0]=node_pushback(re[0],node_at(boundaries,i)->value);
     }
-    if(flag==1)
+    for(Node* nit=edge1;nit!=NULL;nit=(Node*)(nit->Next))
     {
-        for(Node* nit=e_reverse;nit!=NULL;nit=(Node*)(nit->Prev))
-        {
-            re[0]=node_pushback(re[0],nit->value);
-        }
-    } 
-    else
-    {
-        for(Node* nit=edge;nit!=NULL;nit=(Node*)(nit->Next))
-        {
-            re[0]=node_pushback(re[0],nit->value);
-        }
+        re[0]=node_pushback(re[0],nit->value);
     }
+    
     for(int i=index2+1;i<size;i++)
     {
         re[0]=node_pushback(re[0],node_at(boundaries,i)->value);
@@ -356,28 +348,15 @@ static Node** my_get_split_boundaries_area_from_boundaries_and_edge(Node* bounda
         re[1]=node_pushback(re[1],node_at(boundaries,i)->value);
 
     }
-    if(flag)
+    for(Node* nit=node_reverse(edge1);nit!=NULL;nit=(Node*)(nit->Prev))
     {
-        for(Node* nit=edge;nit!=NULL;nit=(Node*)(nit->Next))
-        {
-            re[1]=node_pushback(re[1],nit->value);
-        }
+        re[1]=node_pushback(re[1],nit->value);
     }
-    else
-    {
-        for(Node* nit=edge;nit!=NULL;nit=(Node*)(nit->Next))
-        {
-            re[1]=node_pushback(re[1],nit->value);
-        }
-    }
-
     re[0]=node_reverse(re[0]);
     re[1]=node_reverse(re[1]);
-
+    free_node(edge1);
     return re;
-
 }  
-
 
 /// 给一个边界围成的区域，返回切割后的两个区域
 
@@ -436,14 +415,85 @@ Node* my_get_split_areas_from_one_cell(template_c*c ,Mesh* m, Mesh2_Crossover_Po
         mv->v2=(template_v*)(nit->value);
         tree2->insert(tree2,mv->v2->id,mv); 
     } 
-    if(tree2->size>0)
-    {
-        printf("c id: %d  ",c->id);
-    }
+    
     Node* re=NULL,*re1=NULL;
     Node* boundaries=my_get_cell_boundary_vertices(c,m,mcp,tree1,tree2);
-    
-    
+    if(tree2->size>0)
+    {        
+        printf("c id: %d  ",c->id);
+        Node* hfs=Mesh_adjust_halffaces(m,c);
+        for(Node*nit=hfs;nit!=NULL;nit=(Node*)(nit->Next))
+        {
+            template_hf* hf=(template_hf*)(nit->value);
+            printf("v id:%d  ",hf->vertices[0]->id);
+        }
+        printf("\n");
+        printf("c id: %d  ",c->id);
+        for(Node* nit=boundaries;nit!=NULL;nit=(Node*)(nit->Next))
+        {
+            My_Vertex* mv=(My_Vertex*)(nit->value);
+            if(mv->v1!=NULL)
+            {
+                printf("v1 id:%d  ", mv->v1->id);
+            }
+            else
+            {
+                printf("v2 id:%d  ", mv->v2->id);
+            }
+        }
+        printf("\n");
+        Node* edge=my_get_split_one_split_edge(boundaries,tree2);
+        printf("edge\n");
+        for(Node* nit=edge;nit!=NULL;nit=(Node*)(nit->Next))
+        {
+            My_Vertex* mv=(My_Vertex*)(nit->value);
+            if(mv->v1!=NULL)
+            {
+                printf("v1 id:%d  ", mv->v1->id);
+            }
+            else
+            {
+                printf("v2 id:%d  ", mv->v2->id);
+            }
+        }
+        printf("\n");
+
+        printf("split edge\n");
+        Node**splits= my_get_split_boundaries_area_from_boundaries_and_edge(boundaries,edge);
+        if(splits!=NULL)
+        {
+            for(Node*nit=splits[0];nit!=NULL;nit=(Node*)(nit->Next))
+            {
+                My_Vertex* mv=(My_Vertex*)(nit->value);
+                if(mv->v1!=NULL)
+                {
+                    printf("v1 id:%d  ", mv->v1->id);
+                }
+                else
+                {
+                    printf("v2 id:%d  ", mv->v2->id);
+                } 
+            }
+            printf("\n");
+            for(Node*nit=splits[1];nit!=NULL;nit=(Node*)(nit->Next))
+            {
+                My_Vertex* mv=(My_Vertex*)(nit->value);
+                if(mv->v1!=NULL)
+                {
+                    printf("v1 id:%d  ", mv->v1->id);
+                }
+                else
+                {
+                    printf("v2 id:%d  ", mv->v2->id);
+                } 
+            }
+        }
+        printf("\n");
+        free_node(edge);
+        free_node(hfs);
+    }
+    free_node(boundaries);
+
     // Node* boundaries=my_get_cell_boundary_vertices(c,m,mcp,tree1,tree2);
     // re1=node_overlying(re1,boundaries);
     // while(re1!=NULL)
