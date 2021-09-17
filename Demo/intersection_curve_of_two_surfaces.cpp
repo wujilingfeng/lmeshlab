@@ -216,7 +216,7 @@ Mesh* get_intersection_lines_of_two_nodes(Node* n1,Node* n2,Mesh2_Crossover_Poin
     {return re;}
     re->simplex=1;
     re->manifold_require=0;
-    //re->dimension=1;
+    //re->dimension=2;
     for(Node* it1=n1;it1!=NULL;it1=(Node*)(it1->Next))
     {
         template_c* c1=(template_c*)(it1->value);

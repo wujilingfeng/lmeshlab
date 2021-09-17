@@ -275,10 +275,10 @@ void test_intersection_of_two_surfaces()
     Mesh* m3=get_intersection_lines_of_two_nodesn(n1,n2,mcp1,mcp2);
 
     printf("m3 numv:%d\n",m3->num_v(m3)); 
-    adjust_mesh_topology(m3);
+    adjust_mesh_topology(m3,mcp1,mcp2);
 
     //测试重新mesh后的区域
-    printf("测试;%d\n",mcp1->c2p->size);
+    printf("测试;%d %d\n",mcp1->c2p->size,m1.num_f(&m1));
     Int_RB_Tree* tree=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
     int_rb_tree_init(tree);
     Mesh* m5=my_intersection_remesh(&m2,mcp2,m3,tree);
@@ -302,7 +302,7 @@ void test_intersection_of_two_surfaces()
     // (*m5)*0.00001; 
     test_show_mesh_lines(vw,m3);
     test_show_mesh_cells(vw,&m2);
-    //test_show_mesh_lines(vw,m5);
+    test_show_mesh_lines(vw,&m1);
 
     // Mesh m6;
     // Mesh_init(&m6);

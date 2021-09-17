@@ -8,7 +8,7 @@
 
 
 
-void adjust_mesh_topology(Mesh* m);
+void adjust_mesh_topology(Mesh* m,Mesh2_Crossover_Point* mcp1,Mesh2_Crossover_Point* mcp2);
 //
 //给一个cell,返回切割后的多边形区域
 // m 是c所在的mesh,

@@ -22,8 +22,27 @@ static inline void my_vertex_init_(My_Vertex* myv)
 }
 
 //将v v1合并为一点
-static inline void merge_two_vertices(Mesh* m,template_v* v,template_v* v1)
+static inline void merge_two_vertices(Mesh* m,template_v* v,template_v* v1,Mesh2_Crossover_Point* mcp1,Mesh2_Crossover_Point*mcp2)
 { 
+    Crossover_Point* cp=(Crossover_Point*)(v1->prop);
+    Mesh2_Crossover_Point* mcps[2]={mcp1,mcp2};
+    printf("erase v id:%d\n",v1->id);
+    for(int i=0;i<2;i++)
+    {
+        if(cp->scp[i].v!=NULL)
+        {
+            mcps[i]->v2p->erase(mcps[i]->v2p,cp->scp[i].v->id);
+        }
+        else if(cp->scp[i].f!=NULL)
+        {
+            mcps[i]->f2p->erase(mcps[i]->f2p,cp->scp[i].f->id);
+        }
+        else
+        {
+            mcps[i]->c2p->erase(mcps[i]->c2p,cp->scp[i].c->id);
+        }
+    }
+
     template_v* vs[2]={v,NULL};
     template_f* f=(template_f*)(v1->faces->value);
     if(f->vertices[0]==v1)
@@ -39,7 +58,7 @@ static inline void merge_two_vertices(Mesh* m,template_v* v,template_v* v1)
     m->create_facev(m,vs,2); 
 }
 
-static inline Node* adjust_edges_to_loop_from_nodes(Node* node,Mesh*m)
+static inline Node* adjust_edges_to_loop_from_nodes(Node* node,Mesh*m,Mesh2_Crossover_Point* mcp1,Mesh2_Crossover_Point*mcp2)
 {
     if(node==NULL)
     {
@@ -60,14 +79,14 @@ static inline Node* adjust_edges_to_loop_from_nodes(Node* node,Mesh*m)
     }
     if(n1!=NULL&&n2!=NULL)
     {
-       merge_two_vertices(m,v,v1);
+       merge_two_vertices(m,v,v1,mcp1,mcp2);
     }
     Node* re=node_remove(node,n1);
     re=node_remove(re,n2);
     return re;
 }
 //检测并调整拓扑
-void adjust_mesh_topology(Mesh* m)
+void adjust_mesh_topology(Mesh* m,Mesh2_Crossover_Point*mcp1,Mesh2_Crossover_Point*mcp2)
 {
     Node* node1=NULL,*node4=NULL;
     printf("ajust mesh topology\n");
@@ -83,15 +102,17 @@ void adjust_mesh_topology(Mesh* m)
                 if(cp->scp[i].v!=NULL&&m->vertex_is_boundary(m,*(cp->scp[i].v)))
                 {
                     flag=1;
+                    printf("v boundaries\n");
                 }
                 else if(cp->scp[i].f!=NULL&&m->face_is_boundary(m,*(cp->scp[i].f)))
                 {
+                    printf("f boundaries f id:%d %d\n",cp->scp[i].f->id);
                     flag=1;
                 }
             } 
             if(flag==0)
             {
-                printf("jiance 1 %d %.8lf %.8lf %.8lf\n",quote(it)->id,quote(it)->point[0],quote(it)->point[1],quote(it)->point[2]);
+                printf("jiance 1 %d %.8lf %.8lf %.8lf size:%d\n",quote(it)->id,quote(it)->point[0],quote(it)->point[1],quote(it)->point[2],size);
                 node1=node_overlying(node1,quote(it));
             }
         }
@@ -102,12 +123,12 @@ void adjust_mesh_topology(Mesh* m)
         }
     }   
     int size=node_size(node1);
-    node1=adjust_edges_to_loop_from_nodes(node1,m);
+    node1=adjust_edges_to_loop_from_nodes(node1,m,mcp1,mcp2);
     int size1=node_size(node1);
     printf("size :%d size1:%d\n",size,size1 );
     while(size1!=size)
     {
-        node1=adjust_edges_to_loop_from_nodes(node1,m);
+        node1=adjust_edges_to_loop_from_nodes(node1,m,mcp1,mcp2);
         size=size1;
         size1=node_size(node1);
     }
@@ -175,36 +196,66 @@ static inline  Node*  my_get_cell_boundary_vertices(template_c* c,Mesh* m,Mesh2_
     free_node(hfs);
     return node_reverse(re);
 }
-
+//返回值在链表的索引
+static int my_get_node_value_index(Node* node,void* value)
+{
+    int re=-1;
+    int i=0;
+    for(Node*nit=node;nit!=NULL;nit=(Node*)(nit->Next))
+    {
+        if(nit->value==value)
+        {
+            re=i;
+            break;
+        }
+        i++;
+    }
+    return re;
+}
 
 // 给一个边界围城的区域，返回这个区域内一条切割线
 static inline Node* my_get_split_one_split_edge(Node* boundaries,Int_RB_Tree*tree2)
 {
     Node* edge=NULL;
     int i=0;
+    int j=0;
+    void* mark=NULL,*mark2=NULL;
     for(Node* nit=boundaries;nit!=NULL;nit=(Node*)(nit->Next))
     {
         edge=NULL;
         My_Vertex* mv=(My_Vertex*)(nit->value);
+        j=i;
+        mark=mv;
         if(mv->v2!=NULL)
         {
             for(Node* nit1=mv->v2->faces;nit1!=NULL;nit1=(Node*)(nit1->Next))
             {
+                edge=NULL;
                 template_f* f=(template_f*)(nit1->value);
                 template_v* v=NULL;
                 f->vertices[0]==mv->v2?v=f->vertices[1]:v=f->vertices[0];
-                My_Vertex* mv1=(My_Vertex*)(tree2->find(tree2,v->id));
+
+                My_Vertex* mv1=(My_Vertex*)(tree2->find(tree2,v->id)),*mv2=mv;
+                if(mv1==mv)
+                {
+                    printf("liboooooooooooooooooooooooooo------------------+++++\n");
+                } 
                 if(mv1!=NULL&&mv1!=node_at(boundaries,i+1)->value&&mv1!=node_at(boundaries,i-1)->value)
                 {
                     Int_RB_Tree* tree=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
                     int_rb_tree_init(tree);
                     tree->insert(tree,f->id,f);
-                    edge=node_pushback(edge,mv);
+                    edge=node_pushback(edge,mv2);
                     edge=node_pushback(edge,mv1);
+                    mark2=mv1;
+                    if(mark==mark2)
+                    {
+                        printf("liboooooooooooooooooooooooooo------------------+++++\n");
+                    } 
                     while(mv1!=NULL&&node_find(boundaries,mv1)==NULL)
                     {
-                        mv=mv1; mv1=NULL;            
-                        for(Node* nit2=mv->v2->faces;nit2!=NULL;nit2=(Node*)(nit2->Next))
+                        mv2=mv1; mv1=NULL;            
+                        for(Node* nit2=mv2->v2->faces;nit2!=NULL;nit2=(Node*)(nit2->Next))
                         {
                             f=(template_f*)(nit2->value);
                             if(tree->find(tree,f->id)!=NULL)
@@ -214,7 +265,7 @@ static inline Node* my_get_split_one_split_edge(Node* boundaries,Int_RB_Tree*tre
                             else
                             {
                                 tree->insert(tree,f->id,f);
-                                f->vertices[0]==mv->v2?v=f->vertices[1]:v=f->vertices[0]; 
+                                f->vertices[0]==mv2->v2?v=f->vertices[1]:v=f->vertices[0]; 
                                 mv1=(My_Vertex*)(tree2->find(tree2,v->id));
                                 edge=node_pushback(edge,mv1);
                                 break; 
@@ -240,24 +291,21 @@ static inline Node* my_get_split_one_split_edge(Node* boundaries,Int_RB_Tree*tre
         }
         i++;
     }
-    return node_reverse(edge);
-}
-//返回值在链表的索引
-static int my_get_node_value_index(Node* node,void* value)
-{
-    int re=-1;
-    int i=0;
-    for(Node*nit=node;nit!=NULL;nit=(Node*)(nit->Next))
+    Node* re=node_reverse(edge);
+    if(re!=NULL&&my_get_node_value_index(boundaries,re->value)==-1)
     {
-        if(nit->value==value)
+        printf("cuowuuuuuuuuuuuuuuuuuuuuuuuuuu j:%d\n",j);
+        if(mark==mark2)
         {
-            re=i;
-            break;
+            printf("mifdsddfsdfagdsagda\n");
         }
-        i++;
+        printf("%p %p %p %p\n", re->value,node_at(boundaries,j)->value,mark,mark2);
+        Node* nnn=(Node*)(re->Next);
+        printf("%p\n",nnn->value);
     }
     return re;
 }
+
 
 
 //给定边界围成的区域和切割线，返回切割后的两个区域
@@ -267,6 +315,8 @@ static Node** my_get_split_boundaries_area_from_boundaries_and_edge(Node* bounda
     {return NULL;}
     Node* e_reverse=node_reverse(edge);
     int index_1=my_get_node_value_index(boundaries,edge->value);
+
+
     int index_2=my_get_node_value_index(boundaries,e_reverse->value);    
     int index1=index_1,index2=index_2;
     Node*edge1=node_copy(edge);
@@ -306,6 +356,11 @@ static Node** my_get_split_boundaries_area_from_boundaries_and_edge(Node* bounda
     re[0]=node_reverse(re[0]);
     re[1]=node_reverse(re[1]);
     free_node(edge1);
+    if(node_size(boundaries)==node_size(re[0]))
+    {
+        printf("zheliddddddddddddddddd edge size:%d\n",node_size(edge));
+        printf("index1:%d,index2:%d\n",index_1,index_2);
+    }
     return re;
 }  
 
@@ -317,6 +372,7 @@ static inline  Node** my_get_split_boundaries_areas(Node* boundaries,Mesh*nm ,In
     Node* edge=my_get_split_one_split_edge(boundaries,tree2);
     re=my_get_split_boundaries_area_from_boundaries_and_edge(boundaries,edge);
     free_node(edge);
+
     return re;
 }
 
@@ -451,28 +507,46 @@ Node* my_get_split_areas_from_one_cell(template_c*c ,Mesh* m, Mesh2_Crossover_Po
             My_Vertex* mv=(My_Vertex*)(nit->value);
             if(mv->v1!=NULL)
             {
-                printf("v1 id:%d  ", mv->v1->id);
+                printf("v1 id:%d  p:%lf %lf %lf", mv->v1->id,mv->v1->point[0],mv->v1->point[1],mv->v1->point[2]);
             }
             else
             {
-                printf("v2 id:%d  ", mv->v2->id);
+                printf("v2 id:%d  p:%lf %lf %lf", mv->v2->id,mv->v2->point[0],mv->v2->point[1],mv->v2->point[2]);
             } 
 
        } 
+       printf("\n");
     }
     re1=node_overlying(re1,boundaries);
     while(re1!=NULL)
     {
+        if(c->id==420022)
+        {
+            printf("libo:%d\n",node_size(boundaries));
+        }
         Node* temp_n=NULL;
         for(Node* nit=re1;nit!=NULL;nit=(Node*)(nit->Next))
         {
             Node**two_n= my_get_split_boundaries_areas((Node*)(nit->value),nm,tree2);
+
             if(two_n==NULL)
             {
+                if(c->id==420022)
+                {
+                    printf("two_n===NULL\n");
+                }
                 re=node_overlying(re,nit->value);
             }
             else
             {
+                if(c->id==420022)
+                {
+                    printf("two_n!=NULL\n");
+                    for(int i=0;i<2;i++)
+                    {
+                        printf("node size:%d\n",node_size(two_n[i]));
+                    }
+                }
                 temp_n=node_overlying(temp_n,two_n[0]);
                 temp_n=node_overlying(temp_n,two_n[1]);
                 free(two_n);
@@ -533,12 +607,14 @@ Mesh* my_intersection_remesh(Mesh* m1,Mesh2_Crossover_Point*mcp,Mesh*m,Int_RB_Tr
         }
         for(Node* nit=bns;nit!=NULL;nit=(Node*)(nit->Next))
         {
+            
+            Node* node=(Node*)(nit->value);
+
+            int len=node_size(node);
             if(quote(cit)->id==420022)
             {
-                printf("once\n");
+                printf("once :%d\n",len);
             }
-            Node* node=(Node*)(nit->value);
-            int len=node_size(node);
             double**vv=(double**)malloc(sizeof(double*)*len);
             Node* nit1=node;
             template_v* v=NULL; 
