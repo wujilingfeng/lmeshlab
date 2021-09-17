@@ -299,6 +299,7 @@ static inline double** get_intersection_points_from_two_polygons_on_one_plane(do
 
 //@return double [2][3];
 // poly1 poly2 not in one plane(不在同一个平面上)
+//保证poly1和poly2是凸的
 //if no intersections return NULL
 double ** get_intersection_points_from_two_polygons(double**poly1,int len1,double**poly2 ,int len2)
 {

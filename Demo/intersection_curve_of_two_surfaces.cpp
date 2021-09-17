@@ -325,7 +325,7 @@ Node* simplify_node_of_two_nodes(Node* n1,Node *n2,int* flag)
 }
 
 
-//可能还存在优化
+
 
 void get_intersection_lines_of_two_nodesn(Node* n11,Node* n22,Mesh*m,Mesh2_Crossover_Point *mcp1,Mesh2_Crossover_Point*mcp2)
 {

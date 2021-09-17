@@ -125,10 +125,21 @@ void test_show_mesh_lines(Viewer_World* vw,Mesh* m)
     get_lines_data_from_2dim_cell(m,&(ve->Data),&(ve->Data_index));
     ve->color_rows=ve->Data_index_rows;
     ve->set_color(ve,1.0,0.0,0.6,1.0); 
-
-
     free_node(n);
 
+}
+void test_show_mesh_cells(Viewer_World* vw,Mesh*m)
+{
+    Node* n=vw->create_something(vw,"Faces");
+    Viewer_Something*vs=(Viewer_Something*)(n->value);
+    Viewer_Faces* vf=(Viewer_Faces*)(vs->evolution);
+    vf->Data_rows=m->num_v(m);
+    vf->Data_index_rows=m->num_c(m);
+    get_data_from_2dim_cell(m,&(vf->Data),&(vf->Data_index));
+    vf->color_rows=vf->Data_index_rows;
+    vf->set_color(vf,0.9,0.6,0.7,1.0); 
+    
+    free_node(n); 
 
 }
 void test_subdivision()
@@ -236,8 +247,8 @@ void test_intersection_of_two_surfaces()
     Mesh m1,m2,m3,m4;
     Mesh_init(&m1);Mesh_init(&m2);Mesh_init(&m3);Mesh_init(&m4);
     //_ReadOff_(&m4,"bone_scan1.off",3);
-    _ReadOff_(&m1,"quad.off",3);
-    _ReadOff_(&m2,"qinyang.off",3);
+    _ReadOff_(&m1,"sphere.off",3);
+    _ReadOff_(&m2,"sphere1.off",3);
 
     Node* n1=NULL,*n2=NULL;
    
@@ -262,11 +273,14 @@ void test_intersection_of_two_surfaces()
 
     //测试重新mesh后的区域
     printf("测试;%d\n",mcp1->c2p->size);
-    for(auto it=m2.c_begin(&m2);it!=m2.c_end(&m2);it++)
-    {
-        //printf("c id:%d\n",quote(it)->id); 
-        my_get_split_areas_from_one_cell(quote(it),&m2,mcp2,&m3);
-    }
+
+    Mesh* m5=my_intersection_remesh(&m2,mcp2,&m3);
+    printf("m5 numc:%d\n",m5->num_c(m5));
+     
+    // for(auto it=m2.c_begin(&m2);it!=m2.c_end(&m2);it++)
+    // {
+    //     my_get_split_areas_from_one_cell(quote(it),&m2,mcp2,&m3);
+    // }
     // for(auto it=mcp2->c2p->begin(mcp2->c2p);it.it!=NULL;it++)
     // {
     //     template_c* c=m2.get_cellp(&m2,it.first);
@@ -283,8 +297,9 @@ void test_intersection_of_two_surfaces()
     Viewer_World *vw=vwm.create_world(&vwm,NULL);
 
     add_default_somethings(vw);
-    m3*0.00001;
+    //m3*0.00001;
     test_show_mesh_lines(vw,&m3);
+    test_show_mesh_cells(vw,m5);
 
 
     //get_intersection_lines_of_two_nodesn(n1,n2,m);
@@ -311,7 +326,7 @@ int main()
     //test_show();
 
     // objtooff("texture_BA.obj");
-    // test_subdivision();
+    //test_subdivision();
     //test_show();
     //test_intersection_of_two_polygons();
    // printf("liboooooooooooo");
