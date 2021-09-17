@@ -137,11 +137,16 @@ void test_show_mesh_cells(Viewer_World* vw,Mesh*m)
     vf->Data_index_rows=m->num_c(m);
     get_data_from_2dim_cell(m,&(vf->Data),&(vf->Data_index));
     vf->color_rows=vf->Data_index_rows;
-    vf->set_color(vf,0.9,0.6,0.7,1.0); 
+    vf->set_color(vf,0.4,0.6,0.7,1.0); 
+    vf->normal_rows=vf->Data_index_rows;
+    vf->compute_normal(vf);
     
     free_node(n); 
 
 }
+
+
+
 void test_subdivision()
 {
     double vs[6][3]={{0,0,0},{1,1,0},{2,1,0},{2,10,0},{1,1.2,0},{-1,1,0}};
@@ -244,11 +249,11 @@ void test_intersection_of_two_polygons()
 void test_intersection_of_two_surfaces()
 {
 
-    Mesh m1,m2,m3,m4;
-    Mesh_init(&m1);Mesh_init(&m2);Mesh_init(&m3);Mesh_init(&m4);
+    Mesh m1,m2,m4;
+    Mesh_init(&m1);Mesh_init(&m2);Mesh_init(&m4);
     //_ReadOff_(&m4,"bone_scan1.off",3);
-    _ReadOff_(&m1,"sphere.off",3);
-    _ReadOff_(&m2,"sphere1.off",3);
+    _ReadOff_(&m1,"cylinder.off",3);
+    _ReadOff_(&m2,"texture_BA.off",3);
 
     Node* n1=NULL,*n2=NULL;
    
@@ -267,26 +272,22 @@ void test_intersection_of_two_surfaces()
 
 
     //get_intersection_lines_of_two_nodes(n1,n2,&m3,mcp1,mcp2); 
-    get_intersection_lines_of_two_nodesn(n1,n2,&m3,mcp1,mcp2);
-    adjust_mesh_topology(&m3);
-    printf("m3 numv:%d\n",m3.num_v(&m3)); 
+    Mesh* m3=get_intersection_lines_of_two_nodesn(n1,n2,mcp1,mcp2);
+
+    printf("m3 numv:%d\n",m3->num_v(m3)); 
+    adjust_mesh_topology(m3);
 
     //测试重新mesh后的区域
     printf("测试;%d\n",mcp1->c2p->size);
+    Int_RB_Tree* tree=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
+    int_rb_tree_init(tree);
+    Mesh* m5=my_intersection_remesh(&m2,mcp2,m3,tree);
 
-    Mesh* m5=my_intersection_remesh(&m2,mcp2,&m3);
-    printf("m5 numc:%d\n",m5->num_c(m5));
-     
-    // for(auto it=m2.c_begin(&m2);it!=m2.c_end(&m2);it++)
-    // {
-    //     my_get_split_areas_from_one_cell(quote(it),&m2,mcp2,&m3);
-    // }
-    // for(auto it=mcp2->c2p->begin(mcp2->c2p);it.it!=NULL;it++)
-    // {
-    //     template_c* c=m2.get_cellp(&m2,it.first);
-    //     printf("c id:%d    ",c->id);
-    //     my_get_split_areas_from_one_cell(c,&m2,mcp2,&m3);
-    // }
+    //my_intersection_cut(m5,&m3,tree); 
+    //printf("m5 numc:%d\n",m5->num_c(m5));
+    int_rb_tree_free(tree); 
+
+    
 
 
     //
@@ -297,11 +298,17 @@ void test_intersection_of_two_surfaces()
     Viewer_World *vw=vwm.create_world(&vwm,NULL);
 
     add_default_somethings(vw);
-    //m3*0.00001;
-    test_show_mesh_lines(vw,&m3);
-    test_show_mesh_cells(vw,m5);
+    // m3*0.00001;
+    // (*m5)*0.00001; 
+    test_show_mesh_lines(vw,m3);
+    test_show_mesh_cells(vw,&m2);
+    //test_show_mesh_lines(vw,m5);
 
-
+    // Mesh m6;
+    // Mesh_init(&m6);
+    // _ReadOff_(&m6,"texture_BA.off",3);
+    // test_show_mesh_cells(vw,&m6);
+    // Mesh_free(&m6);
     //get_intersection_lines_of_two_nodesn(n1,n2,m);
     Viewer_Opengl_Interpreter voi;
     viewer_opengl_interpreter_initn(&voi,&vwm);
@@ -311,11 +318,11 @@ void test_intersection_of_two_surfaces()
     //可视化
 
     free_node(n1);free_node(n2);
-    Mesh_free(&m1);Mesh_free(&m2); Mesh_free(&m3);
+    Mesh_free(&m1);Mesh_free(&m2);Mesh_free(m3);free(m3);
 }
 int main()
 {
- 
+    
     test_intersection_of_two_surfaces();
     int i=9,j=11,k=3;
     Node* node=NULL;

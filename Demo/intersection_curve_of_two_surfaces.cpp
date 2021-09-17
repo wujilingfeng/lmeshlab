@@ -207,29 +207,36 @@ static template_v** get_intersection_vertices_from_two_cells(template_c* c1,temp
 }
 
 
-void get_intersection_lines_of_two_nodes(Node* n1,Node* n2,Mesh* m,Mesh2_Crossover_Point* mcp1,Mesh2_Crossover_Point* mcp2)
+Mesh* get_intersection_lines_of_two_nodes(Node* n1,Node* n2,Mesh2_Crossover_Point* mcp1,Mesh2_Crossover_Point* mcp2)
 {
+
+    Mesh* re=(Mesh*)malloc(sizeof(Mesh));
+    Mesh_init(re);
     if(n1==NULL||n2==NULL)
-    {return;}
-    m->simplex=1;
-    m->manifold_require=0;
+    {return re;}
+    re->simplex=1;
+    re->manifold_require=0;
+    //re->dimension=1;
     for(Node* it1=n1;it1!=NULL;it1=(Node*)(it1->Next))
     {
         template_c* c1=(template_c*)(it1->value);
         for(Node* it2=n2;it2!=NULL;it2=(Node*)(it2->Next))
         {
             template_c*c2=(template_c*)(it2->value);
-            template_v** vs=get_intersection_vertices_from_two_cells(c1,c2,m,mcp1,mcp2);
+            template_v** vs=get_intersection_vertices_from_two_cells(c1,c2,re,mcp1,mcp2);
             if(vs==NULL)
             {continue;}      
              
             if(vs[0]!=NULL&&vs[1]!=NULL)
             {
-                m->create_facev(m,vs,2); 
+                re->create_facev(re,vs,2); 
             } 
             free(vs);
         }
     } 
+    return re;
+
+
 }
 static inline int is_intersected_two_cube(double *min1,double* max1,double* min2,double* max2)
 {
@@ -327,7 +334,7 @@ Node* simplify_node_of_two_nodes(Node* n1,Node *n2,int* flag)
 
 
 
-void get_intersection_lines_of_two_nodesn(Node* n11,Node* n22,Mesh*m,Mesh2_Crossover_Point *mcp1,Mesh2_Crossover_Point*mcp2)
+Mesh* get_intersection_lines_of_two_nodesn(Node* n11,Node* n22,Mesh2_Crossover_Point *mcp1,Mesh2_Crossover_Point*mcp2)
 {
     Node* n1=node_copy(n11),*n2=node_copy(n22);
     int flag=0,flag1=0;
@@ -354,9 +361,10 @@ void get_intersection_lines_of_two_nodesn(Node* n11,Node* n22,Mesh*m,Mesh2_Cross
             break;
         }
     }  
-    get_intersection_lines_of_two_nodes(n1,n2,m,mcp1,mcp2);
-    m->manifold_require=0;
+    Mesh* re=get_intersection_lines_of_two_nodes(n1,n2,mcp1,mcp2);
+    re->manifold_require=0;
     free_node(n1);free_node(n2);
+    return re;
 }
 
 

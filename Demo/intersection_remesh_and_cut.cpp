@@ -444,6 +444,22 @@ Node* my_get_split_areas_from_one_cell(template_c*c ,Mesh* m, Mesh2_Crossover_Po
     // free_node(boundaries);
 
     Node* boundaries=my_get_cell_boundary_vertices(c,m,mcp,tree1,tree2);
+    if(c->id==420022)
+    {
+       for(Node* nit= boundaries;nit!=NULL;nit=(Node*)(nit->Next))
+       {
+            My_Vertex* mv=(My_Vertex*)(nit->value);
+            if(mv->v1!=NULL)
+            {
+                printf("v1 id:%d  ", mv->v1->id);
+            }
+            else
+            {
+                printf("v2 id:%d  ", mv->v2->id);
+            } 
+
+       } 
+    }
     re1=node_overlying(re1,boundaries);
     while(re1!=NULL)
     {
@@ -489,27 +505,38 @@ Node* my_get_split_areas_from_one_cell(template_c*c ,Mesh* m, Mesh2_Crossover_Po
     //     }
     //     printf("\n"); 
     // }
+    
 
     int_rb_tree_free(tree1);int_rb_tree_free(tree2);
     return re;
 } 
 
 
-Mesh* my_intersection_remesh(Mesh* m1,Mesh2_Crossover_Point*mcp,Mesh*m)
+Mesh* my_intersection_remesh(Mesh* m1,Mesh2_Crossover_Point*mcp,Mesh*m,Int_RB_Tree* tree2)
 {
+    printf("beginremesh\n");
     Mesh* re=(Mesh*)malloc(sizeof(Mesh));
     Mesh_init(re);
     re->dimension=2;re->simplex=1;re->manifold_require=1;
     Int_RB_Tree* tree1=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
     int_rb_tree_init(tree1);
-    Int_RB_Tree* tree2=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
-    int_rb_tree_init(tree2);
+    //Int_RB_Tree* tree2=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
+    //int_rb_tree_init(tree2);
     for(auto cit=m1->c_begin(m1);cit!=m1->c_end(m1);cit++)
     {
+        
         Node* vertices=NULL;
         Node* bns=my_get_split_areas_from_one_cell(quote(cit),m1,mcp,m,&vertices); 
+        if(quote(cit)->id==420022)
+        { 
+                printf("boundaries size:%d\n",node_size(bns));
+        }
         for(Node* nit=bns;nit!=NULL;nit=(Node*)(nit->Next))
         {
+            if(quote(cit)->id==420022)
+            {
+                printf("once\n");
+            }
             Node* node=(Node*)(nit->value);
             int len=node_size(node);
             double**vv=(double**)malloc(sizeof(double*)*len);
@@ -519,7 +546,7 @@ Mesh* my_intersection_remesh(Mesh* m1,Mesh2_Crossover_Point*mcp,Mesh*m)
             {
                 vv[i]=(double*)malloc(sizeof(double)*3);
                 My_Vertex* mv=(My_Vertex*)(nit1->value);
-                v=mv->v1==NULL?mv->v2:mv->v1; 
+                v=mv->v2==NULL?mv->v1:mv->v2; 
                 vv[i][0]=v->point[0];
                 vv[i][1]=v->point[1];
                 vv[i][2]=v->point[2];
@@ -531,22 +558,42 @@ Mesh* my_intersection_remesh(Mesh* m1,Mesh2_Crossover_Point*mcp,Mesh*m)
                 s[i]=(int*)malloc(sizeof(int)*3);
             }
             subdivision_of_polygon(vv,len,s);
+            // Int_RB_Tree* tree=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
+            // int_rb_tree_init(tree);
+
+            //printf("once cell:%d\n",len-2);
             for(int i=0;i<len-2;i++)
             {
                 template_v* vs[3]={NULL,NULL,NULL};
                 for(int j=0;j<3;j++)    
                 {
-                    My_Vertex* mv=(My_Vertex*)(node_at(node,s[i][j]));
-                    vs[j]=(mv->v1==NULL?(template_v*)(tree2->find(tree2,mv->v2->id)):(template_v*)(tree1->find(tree1,mv->v1->id)));
+                   // printf("v id:%d  ",s[i][j]);
+                    My_Vertex* mv=(My_Vertex*)(node_at(node,s[i][j])->value);
+                    vs[j]=(mv->v2==NULL?(template_v*)(tree1->find(tree1,mv->v1->id)):(template_v*)(tree2->find(tree2,mv->v2->id)));
                     if(vs[j]==NULL)
                     {
-                        vs[j]=re->create_vertexv(re,(mv->v1==NULL?mv->v2->point:mv->v1->point),3);
-                        mv->v1==NULL?tree2->insert(tree2,mv->v2->id,vs[j]):tree1->insert(tree1,mv->v1->id,vs[j]); 
-                    }         
+                        vs[j]=re->create_vertexv(re,(mv->v2==NULL?mv->v1->point:mv->v2->point),3);
+                        mv->v2==NULL?tree1->insert(tree1,mv->v1->id,vs[j]):tree2->insert(tree2,mv->v2->id,vs[j]); 
+                    }
+                    //tree->insert(tree,s[i][j],NULL);
                 }
-                re->create_cellv(re,vs,3);
+                if(quote(cit)->id==420022)
+                {
+                    printf("*********\n");
+                    printf("%d %d %d\n",s[i][0],s[i][1],s[i][2]);
+                }
+               // printf("\n");
+                template_c*cc=re->create_cellv(re,vs,3);
+                if(cc==NULL)
+                {
+                    printf("cuowulibbbbbbbbbbbb\n");
+                }
             } 
-            //free_node_value(node);
+            // if(tree->size<len)
+            // {
+            //     printf("cuowu\n");
+            // }
+            // int_rb_tree_free(tree);
             free_node(node);
             for(int i=0;i<len;i++)
             {
@@ -562,7 +609,24 @@ Mesh* my_intersection_remesh(Mesh* m1,Mesh2_Crossover_Point*mcp,Mesh*m)
         free_node(vertices);
         free_node(bns);
     }
-    int_rb_tree_free(tree1);int_rb_tree_free(tree2);
+    int_rb_tree_free(tree1);
+    //int_rb_tree_free(tree2);
     return re;
 }
 
+void my_intersection_cut(Mesh* m,Mesh* nm,Int_RB_Tree* tree)
+{
+    Node* node=NULL;
+    for(auto fit=nm->f_begin(nm);fit!=nm->f_end(nm);fit++)
+    {
+        template_v* vs[2]={NULL};
+        vs[0]=(template_v*)(tree->find(tree,quote(fit)->vertices[0]->id));
+        vs[1]=(template_v*)(tree->find(tree,quote(fit)->vertices[1]->id));
+        node=node_overlying(node,m->get_facev(m,vs,2));
+    }  
+    Mesh_cut_along_the_curvef(m,node);
+
+
+    free_node(node);
+
+}

@@ -20,12 +20,16 @@ Node* my_get_split_areas_from_one_cell(template_c*c ,Mesh* m, Mesh2_Crossover_Po
 //m1是网格
 //m是切割曲线
 //返回m1重建后的网格
-Mesh* my_intersection_remesh(Mesh* m1,Mesh2_Crossover_Point*mcp,Mesh*m);
+//tree2储存m到返回值的关联
+Mesh* my_intersection_remesh(Mesh* m1,Mesh2_Crossover_Point*mcp,Mesh*m,Int_RB_Tree*tree2);
 
+//m要切割的网格
+//nm切割线
+//tree储存nm到m的映射
 
+void my_intersection_cut(Mesh* m,Mesh* nm,Int_RB_Tree* tree);
 
 //Node* my_create_cell_required_vertices(template_c* c,Mesh* m1,Mesh* m,Mesh* );
-// void my_intersection_cut(Mesh* m1,Mesh* m);
 
 
 

@@ -87,13 +87,15 @@ static inline double** get_intersection_points_from_two_cells(template_c* c1,tem
 Node* simplify_node_of_two_nodes(Node* n1,Node *n2,int* flag);
 //Node* get_intersection_lines_segments_of_two_nodes(Node* n1,Node* n2,Mesh* m);
 
-void get_intersection_lines_of_two_nodes(Node* n1,Node* n2,Mesh*m,Mesh2_Crossover_Point* mcp1,Mesh2_Crossover_Point*mcp2);
-void get_intersection_lines_of_two_nodesn(Node* n11,Node* n22,Mesh*m,Mesh2_Crossover_Point*mcp1,Mesh2_Crossover_Point*mcp2);
+Mesh* get_intersection_lines_of_two_nodes(Node* n1,Node* n2,Mesh2_Crossover_Point* mcp1,Mesh2_Crossover_Point*mcp2);
+Mesh*  get_intersection_lines_of_two_nodesn(Node* n11,Node* n22,Mesh2_Crossover_Point*mcp1,Mesh2_Crossover_Point*mcp2);
+
 // mcp1储存m1到m的信息
 //mcp2储存m2到m的信息
 
-static void get_intersection_lines_of_two_meshs(Mesh* m1,Mesh* m2,Mesh*m,Mesh2_Crossover_Point* mcp1,Mesh2_Crossover_Point*mcp2)
+static Mesh*  get_intersection_lines_of_two_meshs(Mesh* m1,Mesh* m2,Mesh2_Crossover_Point* mcp1,Mesh2_Crossover_Point*mcp2)
 {
+    Mesh* re=NULL;
     Node* n1=NULL,*n2=NULL;
    
     for(auto it=m1->c_begin(m1);it!=m1->c_end(m1);it++)
@@ -106,8 +108,9 @@ static void get_intersection_lines_of_two_meshs(Mesh* m1,Mesh* m2,Mesh*m,Mesh2_C
     }
 
 
-    get_intersection_lines_of_two_nodesn(n1,n2,m,mcp1,mcp2);
+    re=get_intersection_lines_of_two_nodesn(n1,n2,mcp1,mcp2);
     free_node(n1);free_node(n2);
+    return re;
   //  interset_jiance(m);
    // printf("end here\n"); 
 }

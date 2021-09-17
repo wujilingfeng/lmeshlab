@@ -256,5 +256,21 @@ void viewer_Arcroll_key_callback(Viewer_Intera*vi)
             free(temp_n);
         }
     }
+    else if (g_info->key_action==VIEWER_PRESS&&g_info->key==VIEWER_KEY_I)
+    {
+        if(g_info->ipi.vs!=NULL)
+        {
+            printf("%s name_id:%d marked_id: %d\n",g_info->ipi.vs->name,g_info->ipi.vs->name_id,g_info->ipi.marked_element);
+
+            // if(strcmp(g_info->ipi.vs->name,"Faces"))
+            // {
+            //     Viewer_Faces* vf=(Viewer_Faces*)(g_info->ipi.vs->evolution);
+
+
+            // } 
+
+        }
+    }
+    
 }
 #undef Matrix4x4
