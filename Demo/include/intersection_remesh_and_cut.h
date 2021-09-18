@@ -6,7 +6,9 @@
 
 
 
-
+//调整拓扑
+//m是要调整的分割线的网格
+//m调整以后，mcp1 mcp2也要调整
 
 void adjust_mesh_topology(Mesh* m,Mesh2_Crossover_Point* mcp1,Mesh2_Crossover_Point* mcp2);
 //
@@ -20,7 +22,7 @@ Node* my_get_split_areas_from_one_cell(template_c*c ,Mesh* m, Mesh2_Crossover_Po
 //m1是网格
 //m是切割曲线
 //返回m1重建后的网格
-//tree2储存m到返回值的关联
+//tree2储存m到返回的mesh的映射
 Mesh* my_intersection_remesh(Mesh* m1,Mesh2_Crossover_Point*mcp,Mesh*m,Int_RB_Tree*tree2);
 
 //m要切割的网格

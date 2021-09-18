@@ -256,7 +256,7 @@ void test_intersection_of_two_surfaces()
     _ReadOff_(&m2,"texture_BA.off",3);
 
     Node* n1=NULL,*n2=NULL;
-   
+    printf("begin\n"); 
     for(auto it=m1.c_begin(&m1);it!=m1.c_end(&m1);it++)
     {
         n1=node_overlying(n1,quote(it));
@@ -283,12 +283,10 @@ void test_intersection_of_two_surfaces()
     int_rb_tree_init(tree);
     Mesh* m5=my_intersection_remesh(&m2,mcp2,m3,tree);
 
-    //my_intersection_cut(m5,&m3,tree); 
+    my_intersection_cut(m5,m3,tree); 
     //printf("m5 numc:%d\n",m5->num_c(m5));
     int_rb_tree_free(tree); 
-
-    
-
+    printf("end\n");
 
     //
     // 可视化
@@ -302,7 +300,7 @@ void test_intersection_of_two_surfaces()
     // (*m5)*0.00001; 
     test_show_mesh_lines(vw,m3);
     test_show_mesh_cells(vw,&m2);
-    test_show_mesh_lines(vw,&m1);
+    //test_show_mesh_lines(vw,&m1);
 
     // Mesh m6;
     // Mesh_init(&m6);
