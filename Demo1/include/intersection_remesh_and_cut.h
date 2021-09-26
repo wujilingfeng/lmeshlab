@@ -3,7 +3,9 @@
 #include<intersection_curve_of_two_surfaces.h>
 #include<subdivision_of_polygon.h>
 #include<tool/libcell_tools_algorithm.h>
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 //调整拓扑
@@ -39,8 +41,9 @@ void my_intersection_cut(Mesh* m,Mesh* nm,Int_RB_Tree* tree,Int_RB_Tree* tree3);
 
 //Node* my_create_cell_required_vertices(template_c* c,Mesh* m1,Mesh* m,Mesh* );
 
-
-
+#ifdef __cplusplus
+}
+#endif
 
 
 

@@ -152,10 +152,14 @@ static inline double my_distance_two_points(double* p1,double* p2)
 //获取cell的边界点（按顺序）
 //tree1是m到新建点的映射
 //tree2是分割线mesh到新建点的映射
-static  Node*  my_get_cell_boundary_vertices(template_c* c,Mesh* m,Mesh2_Crossover_Point*mcp ,Int_RB_Tree* tree1,Int_RB_Tree*tree2)
+static  Node*  my_get_cell_boundary_vertices(template_c* c,Mesh2_Crossover_Point*mcp ,Int_RB_Tree* tree1,Int_RB_Tree*tree2)
 {
     Node* re=NULL;
-    Node* hfs=Mesh_adjust_halffaces(m,c);
+    Mesh m;
+    Mesh_init(&m);
+
+    Node* hfs=Mesh_adjust_halffaces(&m,c);
+    Mesh_free(&m);
     for(Node* nit=hfs;nit!=NULL;nit=(Node*)(nit->Next))
     {
         template_hf*hf=(template_hf*)(nit->value);
@@ -359,7 +363,7 @@ static inline  Node** my_get_split_boundaries_areas(Node* boundaries,Mesh*nm ,In
 //vertices储存新建的点，用来释放内存
 //给一个cell,返回切割后的多边形区域
 
-Node* my_get_split_areas_from_one_cell(template_c*c ,Mesh* m, Mesh2_Crossover_Point* mcp,Mesh* nm,Node** vertices)
+Node* my_get_split_areas_from_one_cell(template_c*c , Mesh2_Crossover_Point* mcp,Mesh* nm,Node** vertices)
 { 
     Int_RB_Tree* tree1=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
     int_rb_tree_init(tree1);
@@ -479,7 +483,7 @@ Node* my_get_split_areas_from_one_cell(template_c*c ,Mesh* m, Mesh2_Crossover_Po
     // }
     // free_node(boundaries);
 
-    Node* boundaries=my_get_cell_boundary_vertices(c,m,mcp,tree1,tree2);
+    Node* boundaries=my_get_cell_boundary_vertices(c,mcp,tree1,tree2);
     
     re1=node_overlying(re1,boundaries);
     while(re1!=NULL)
@@ -536,17 +540,17 @@ Node* my_get_split_areas_from_one_cell(template_c*c ,Mesh* m, Mesh2_Crossover_Po
 } 
 
 
-Mesh* my_intersection_remesh(Mesh* m1,Mesh2_Crossover_Point*mcp,Mesh*m,Int_RB_Tree* tree2)
+Mesh* my_intersection_remesh(Node* m1,Mesh2_Crossover_Point*mcp,Mesh*m,Int_RB_Tree* tree2,Int_RB_Tree* tree3)
 {
     Mesh* re=(Mesh*)malloc(sizeof(Mesh));
     Mesh_init(re);
     re->dimension=2;re->simplex=1;re->manifold_require=1;
     Int_RB_Tree* tree1=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
     int_rb_tree_init(tree1);
-    for(auto cit=m1->c_begin(m1);cit!=m1->c_end(m1);cit++)
+    for(Node* cit=m1;cit!=NULL;cit=(Node*)(cit->Next))
     { 
         Node* vertices=NULL;
-        Node* bns=my_get_split_areas_from_one_cell(quote(cit),m1,mcp,m,&vertices); 
+        Node* bns=my_get_split_areas_from_one_cell((template_c*)(cit->value),mcp,m,&vertices); 
         
         for(Node* nit=bns;nit!=NULL;nit=(Node*)(nit->Next))
         {
@@ -582,12 +586,13 @@ Mesh* my_intersection_remesh(Mesh* m1,Mesh2_Crossover_Point*mcp,Mesh*m,Int_RB_Tr
                     My_Vertex* mv=(My_Vertex*)(node_at(node,s[i][j])->value);
                     vs[j]=(mv->v2==NULL?(template_v*)(tree1->find(tree1,mv->v1->id)):(template_v*)(tree2->find(tree2,mv->v2->id)));
                     if(vs[j]==NULL)
-                    {
+                    { 
                         vs[j]=re->create_vertexv(re,(mv->v2==NULL?mv->v1->point:mv->v2->point),3);
                         mv->v2==NULL?tree1->insert(tree1,mv->v1->id,vs[j]):tree2->insert(tree2,mv->v2->id,vs[j]); 
                     }
                 }
                 template_c*cc=re->create_cellv(re,vs,3); 
+                tree3->insert(tree3,cc->id,cit->value);
             } 
             free_node(node);
             for(int i=0;i<len;i++)
@@ -605,10 +610,11 @@ Mesh* my_intersection_remesh(Mesh* m1,Mesh2_Crossover_Point*mcp,Mesh*m,Int_RB_Tr
         free_node(bns);
     }
     int_rb_tree_free(tree1);
+    
     return re;
 }
 
-void my_intersection_cut(Mesh* m,Mesh* nm,Int_RB_Tree* tree)
+void my_intersection_cut(Mesh* m,Mesh* nm,Int_RB_Tree* tree,Int_RB_Tree *tree3)
 {
     Node* node=NULL;
     for(auto fit=nm->f_begin(nm);fit!=nm->f_end(nm);fit++)
@@ -623,11 +629,28 @@ void my_intersection_cut(Mesh* m,Mesh* nm,Int_RB_Tree* tree)
         }
         else
         {
-
             node=node_overlying(node,f);
         }
 
     }  
-    Mesh_cut_along_the_curvef(m,node);
+    Int_RB_Tree* tree1=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
+    int_rb_tree_init(tree1);
+    Int_RB_Tree* tree2=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
+    int_rb_tree_init(tree2);
+
+    Mesh_cut_along_the_curvef(m,node,tree1,tree2);
+    for(auto it=tree1->begin(tree1);it.it!=NULL;it++)
+    {
+        int id=*((int*)(it.second));
+        void* value=tree3->find(tree3,id);
+        tree3->erase(tree3,id);
+        tree3->insert(tree3,it.first,value); 
+        //tree3->erase(tree3,id);
+    }
+
+
+    int_rb_tree_free_value(tree1);
+    int_rb_tree_free(tree1); 
+    int_rb_tree_free(tree2);
     free_node(node);
 }

@@ -13,7 +13,7 @@
 
 #include<Mesh/lib_cell_iterator.h>
 #include<Mesh/Mesh_Operator.h>
-
+#include<export_obj.h>
 #include<macros.h>
 
 #define Matrix4x4 Viewer_Matrix4x4_
@@ -131,28 +131,31 @@ void test_show_mesh_lines(Viewer_World* vw,Mesh* m)
 
 Node*  mytest_m(Mesh* m)
 {
-    printf("m num c:%d\n",m->num_c(m));
-    Node* node=NULL,*node1=NULL;
-    int flag=0;
+    //printf("m num c:%d\n",m->num_c(m));
+
+    Node* re=NULL,*node1=NULL;
+    Int_RB_Tree* tree=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
+    int_rb_tree_init(tree);
+ 
     template_c* c=quote(m->c_begin(m));
-    node=node_overlying(node,c);
+    re=node_overlying(re,c);
     node1=node_overlying(node1,c);
-    c->prop=&flag;
-    printf("here\n");
+    int flag=1;
+    tree->insert(tree,c->id,&flag);
     while(node1!=NULL)
     {
         Node* temp_n=NULL;
         for(Node* nit=node1;nit!=NULL;nit=(Node*)(nit->Next))
         {
-            template_c* c=(template_c*)(nit->value);
+            c=(template_c*)(nit->value);
             for(auto chfit=m->chf_begin(m,*c);chfit!=m->chf_end(m,*c);chfit++)
             {
                 template_c* c1=m->s_opposite_halfface(quote(chfit))->cell;
-                if(c1!=NULL&&c1->prop==NULL)
+                if(c1!=NULL&&tree->find(tree,c1->id)==NULL)
                 {
                     temp_n=node_overlying(temp_n,c1);
-                    node=node_overlying(node,c1);
-                    c1->prop=&flag;
+                    re=node_overlying(re,c1);
+                    tree->insert(tree,c1->id,&flag);
                 }
             }
         } 
@@ -160,16 +163,9 @@ Node*  mytest_m(Mesh* m)
         node1=temp_n;
     }
     printf("here\n");
-    printf("node size:%d\n",node_size(node));
-    for(Node* nit=node;nit!=NULL;nit=(Node*)(nit->Next))
-    {
-        template_c*c=(template_c*)(nit->value);
-        c->prop=NULL;
+    int_rb_tree_free(tree);
 
-    }
-    //free_node(node);
-
-    return node;
+    return re;
 }
 void my_test_show_cat_mesh_cells(Viewer_World* vw,Mesh*m)
 {
@@ -497,7 +493,9 @@ void my_test(Mesh* m,double **ps,int len )
     Node* nn1=simplify_node_of_two_nodes(n2,n1,&flag);
     printf("nn1 size:%d\n",node_size(nn1));
     printf("begin\n");
-    
+   
+    // export_obj_from_node(nn1,"test.obj","texture_BA.mtl");
+    // export_obj_from_node(nn1,"test.obj",NULL);
     Mesh2_Crossover_Point* mcp1=(Mesh2_Crossover_Point*)malloc(sizeof(Mesh2_Crossover_Point));
     Mesh2_Crossover_Point* mcp2=(Mesh2_Crossover_Point*)malloc(sizeof(Mesh2_Crossover_Point));
     mesh2_crossover_point_init(mcp1);mesh2_crossover_point_init(mcp2);
@@ -512,9 +510,17 @@ void my_test(Mesh* m,double **ps,int len )
     int_rb_tree_init(tree);int_rb_tree_init(tree1);
     Mesh* m5=my_intersection_remesh(nn1,mcp1,m3,tree,tree1);
 
+
     my_intersection_cut(m5,m3,tree,tree1); 
+    my_chuli_texture(m5,m,tree1);
+
+    Node* connec_cells=mytest_m(m5);
 
 
+    // export_obj_from_mesh(m5,"test.obj");
+    export_obj_from_node(connec_cells,"test.obj","texture_BA.mtl");
+
+    //printf("m5 size1 :%d size2:%d %d\n",node_size(nn1),tree1->size,m5->num_c(m5));
     
     //mytest_m(m5);
     //printf("m5 numc:%d\n"m5->num_c(m5));

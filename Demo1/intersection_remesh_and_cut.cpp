@@ -633,7 +633,12 @@ void my_intersection_cut(Mesh* m,Mesh* nm,Int_RB_Tree* tree,Int_RB_Tree *tree3)
         }
 
     }  
-    Int_RB_Tree* tree1=Mesh_cut_along_the_curvef(m,node);
+    Int_RB_Tree* tree1=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
+    int_rb_tree_init(tree1);
+    Int_RB_Tree* tree2=(Int_RB_Tree*)malloc(sizeof(Int_RB_Tree));
+    int_rb_tree_init(tree2);
+
+    Mesh_cut_along_the_curvef(m,node,tree1,tree2);
     for(auto it=tree1->begin(tree1);it.it!=NULL;it++)
     {
         int id=*((int*)(it.second));
@@ -646,5 +651,6 @@ void my_intersection_cut(Mesh* m,Mesh* nm,Int_RB_Tree* tree,Int_RB_Tree *tree3)
 
     int_rb_tree_free_value(tree1);
     int_rb_tree_free(tree1); 
+    int_rb_tree_free(tree2);
     free_node(node);
 }
